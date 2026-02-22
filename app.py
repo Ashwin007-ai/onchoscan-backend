@@ -36,15 +36,15 @@ app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
 app.mount("/reports",  StaticFiles(directory="reports"),  name="reports")
 
 app.add_middleware(
-CORSMiddleware,
-allow_origins=[
-"https://Ashwin007-ai.github.io",
-"http://localhost:8000",
-"http://127.0.0.1:8000",
-],
-allow_credentials=True,
-allow_methods=[""],
-allow_headers=[""],
+    CORSMiddleware,
+    allow_origins=[
+        "https://ashwin007-ai.github.io",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # ── SQLite ─────────────────────────────────────────────────────────────────────

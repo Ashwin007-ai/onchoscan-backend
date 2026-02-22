@@ -10,3 +10,4 @@ numpy==1.26.4
 opencv-python-headless==4.9.0.80
 grad-cam==1.5.2
 reportlab==4.1.0
+bcrypt==4.0.1

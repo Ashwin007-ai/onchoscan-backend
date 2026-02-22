@@ -6,7 +6,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from PIL import Image
 import io, os, uuid, datetime, traceback, sqlite3
 from jose import JWTError, jwt
-from passlib.context import CryptContext
+import bcrypt as _bcrypt
 from pydantic import BaseModel
 from typing import Optional, List
 
@@ -117,7 +117,6 @@ def init_db():
 init_db()
 
 # ── Auth helpers ───────────────────────────────────────────────────────────────
-pwd_context   = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 class UserCreate(BaseModel):
@@ -151,8 +150,8 @@ class ChangePassword(BaseModel):
     current_password: str
     new_password:     str
 
-def verify_password(plain, hashed): return pwd_context.verify(plain, hashed)
-def hash_password(p):               return pwd_context.hash(p)
+def verify_password(plain, hashed): return _bcrypt.checkpw(plain.encode(), hashed.encode())
+def hash_password(p): return _bcrypt.hashpw(p.encode(), _bcrypt.gensalt()).decode()
 
 def create_access_token(data: dict, expires_delta=None):
     to_encode = data.copy()

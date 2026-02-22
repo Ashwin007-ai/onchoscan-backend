@@ -10,6 +10,7 @@ import numpy as np
 import cv2
 import os
 import uuid
+import gc
 import base64
 from pytorch_grad_cam.utils.image import show_cam_on_image
 from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
@@ -134,18 +135,26 @@ def get_suggestions(prediction, risk_level):
 
 # ─── PREDICTORS ────────────────────────────────────────────────────────────────
 def predict_brain(image):
-    t = transform(image).unsqueeze(0).to(device)
-    out = brain_model(t)
-    probs = torch.softmax(out, dim=1)
-    idx = torch.argmax(out, 1).item()
-    return brain_classes[idx], probs[0][idx].item(), probs[0].tolist()
+    with torch.no_grad():
+        t = transform(image).unsqueeze(0).to(device)
+        out = brain_model(t)
+        probs = torch.softmax(out, dim=1)
+        idx = torch.argmax(out, 1).item()
+        result = brain_classes[idx], probs[0][idx].item(), probs[0].tolist()
+    del t, out, probs
+    gc.collect()
+    return result
 
 def predict_skin(image):
-    t = transform(image).unsqueeze(0).to(device)
-    out = skin_model(t)
-    probs = torch.softmax(out, dim=1)
-    idx = torch.argmax(out, 1).item()
-    return skin_classes[idx], probs[0][idx].item(), probs[0].tolist()
+    with torch.no_grad():
+        t = transform(image).unsqueeze(0).to(device)
+        out = skin_model(t)
+        probs = torch.softmax(out, dim=1)
+        idx = torch.argmax(out, 1).item()
+        result = skin_classes[idx], probs[0][idx].item(), probs[0].tolist()
+    del t, out, probs
+    gc.collect()
+    return result
 
 # ─── RISK HELPERS ──────────────────────────────────────────────────────────────
 SAFE_PREDICTIONS = {"notumor", "benign"}
@@ -185,13 +194,14 @@ def generate_heatmap(image, model_type, predicted_class):
     grayscale_cam = cam(
         input_tensor=input_tensor,
         targets=targets,
-        aug_smooth=True,
-        eigen_smooth=True
+        aug_smooth=False,
+        eigen_smooth=False
     )[0]
 
-    visualization = show_cam_on_image(image_np, grayscale_cam, use_rgb=True, image_weight=0.4)
+    visualization = show_cam_on_image(
+        image_np.astype(np.float32), grayscale_cam, use_rgb=True, image_weight=0.4
+    )
 
-    # Save heatmap
     os.makedirs("outputs", exist_ok=True)
     uid = uuid.uuid4().hex
     heatmap_path  = f"outputs/heatmap_{uid}.png"
@@ -199,6 +209,9 @@ def generate_heatmap(image, model_type, predicted_class):
 
     cv2.imwrite(heatmap_path, cv2.cvtColor(visualization, cv2.COLOR_RGB2BGR))
     image_resized.save(original_path)
+
+    del input_tensor, grayscale_cam, visualization, image_np
+    gc.collect()
 
     return heatmap_path, original_path
 
